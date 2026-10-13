@@ -1,0 +1,9 @@
+# Per-repo no-mistakes overrides.
+
+test:
+  instructions: |
+    This machine runs the operator's live herdr web ui (ports 7317 and 5173) and a live herdr server. A validation run must never stop, restart or disturb them.
+    Never stop, restart or kill a process by name, image or command-line pattern (no taskkill /IM, Stop-Process -Name, pkill, killall, and no filter on a command line such as `server/index.ts`).
+    Stop only PIDs you started yourself: record each PID when you launch it and kill exactly that PID, nothing else.
+    Run any test server on a port other than 7317 and 5173, with an isolated `XDG_CONFIG_HOME`, `XDG_STATE_HOME`, `HERDR_WEB_STATE_DIR` and `HERDR_PLUGIN_STATE_DIR` made for the run (`bun run check` already isolates these).
+    Never run the plugin's start, stop or install scripts (`scripts/plugin.ts`, `install.sh`, `install.ps1`) or `herdr plugin` commands against the real install.
