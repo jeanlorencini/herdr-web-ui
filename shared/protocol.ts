@@ -332,7 +332,8 @@ export interface FirstmateTask {
   readonly id: string;
   /** ship, scout, or what the home recorded */
   readonly kind: string;
-  /** working, parked, paused, blocked, done, failed or unknown, as the home reconciled it */
+  /** working, parked, paused, needs-decision, blocked, done, failed or unknown: as the home reconciled it, or as
+   *  the task last logged it when the home could not (the logged word is then dropped from `doing`) */
   readonly state: string;
   readonly repo: string | null;
   readonly name: string;

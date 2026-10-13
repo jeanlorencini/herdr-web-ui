@@ -15,7 +15,7 @@ export const TONES: readonly Tone[] = ["working", "waiting", "blocked", "done", 
 export function toneOf(state: string): Tone {
   switch (state) {
     case "working": return "working";
-    case "parked": case "paused": return "waiting";
+    case "parked": case "paused": case "needs-decision": return "waiting";
     case "blocked": case "failed": return "blocked";
     case "done": return "done";
     default: return "unknown";
@@ -23,7 +23,8 @@ export function toneOf(state: string): Tone {
 }
 
 const STATE_LABELS: Record<string, string> = {
-  working: "Em execução", parked: "Aguardando", paused: "Pausada", blocked: "Bloqueada", failed: "Falhou", done: "Concluída",
+  working: "Em execução", parked: "Aguardando", paused: "Aguardando", "needs-decision": "Aguardando decisão",
+  blocked: "Bloqueado", failed: "Falhou", done: "Concluído",
 };
 export const stateLabel = (state: string): string => STATE_LABELS[state] ?? "Não verificável";
 
@@ -36,7 +37,7 @@ const KIND_LABELS: Record<string, string> = { ship: "Implementação", scout: "I
 export const kindLabel = (kind: string): string => KIND_LABELS[kind] ?? kind;
 
 export function badgeOf(task: FirstmateTask): string | null {
-  if (task.decision) return "Decisão pendente";
+  if (task.decision || task.state === "needs-decision") return "Decisão pendente";
   switch (task.state) {
     case "working": return "Em atividade";
     case "blocked": return "Bloqueio";
@@ -98,4 +99,28 @@ export function collectedTime(iso: string | null): string | null {
   const date = iso === null ? null : new Date(iso);
   if (date === null || Number.isNaN(date.getTime())) return null;
   return `coleta ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** the column's width once dragged: never narrower than the prototype's narrow column, never more than 60% of the window */
+export const PANEL_MIN_WIDTH = 300;
+export const PANEL_MAX_WIDTH = 960;
+export const PANEL_WIDTH_STEP = 16;
+
+export const panelMaxWidth = (viewportWidth: number): number =>
+  Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, Math.floor(viewportWidth * 0.6)));
+
+export const clampPanelWidth = (width: number, viewportWidth = Number.POSITIVE_INFINITY): number =>
+  Math.round(Math.max(PANEL_MIN_WIDTH, Math.min(panelMaxWidth(viewportWidth), width)));
+
+/** the stored choice, or null for none (the default width applies) */
+export const parsePanelWidth = (stored: string | null): number | null =>
+  stored !== null && /^\d+$/.test(stored) ? clampPanelWidth(Number(stored)) : null;
+
+/** where a key moves the seam: the column sits on the right, so ArrowLeft widens it */
+export function keyedPanelWidth(current: number, key: string, viewportWidth: number): number | null {
+  if (key === "ArrowLeft") return clampPanelWidth(current + PANEL_WIDTH_STEP, viewportWidth);
+  if (key === "ArrowRight") return clampPanelWidth(current - PANEL_WIDTH_STEP, viewportWidth);
+  if (key === "Home") return PANEL_MIN_WIDTH;
+  if (key === "End") return panelMaxWidth(viewportWidth);
+  return null;
 }

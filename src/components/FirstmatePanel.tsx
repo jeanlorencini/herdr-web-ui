@@ -7,15 +7,17 @@
  * (lib/firstmateProgress.ts says why).
  */
 import { Check, ChevronLeft, ChevronRight, CircleAlert, CircleQuestionMark, CircleX, ExternalLink, Mountain, Pause, Play, Plus, TriangleAlert } from "lucide-react";
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject } from "react";
 
 import type { FirstmateProgress, FirstmateTask } from "../../shared/protocol.ts";
 import { fetchFirstmateProgress } from "../lib/api.ts";
-import { badgeOf, collectedAt, collectedTime, groupByProject, kindLabel, splitFeed, stateLabel, summaryLine, taskCount, TONE_LABELS, toneCounts, toneOf, TONES, type Tone } from "../lib/firstmateProgress.ts";
+import { badgeOf, clampPanelWidth, collectedAt, collectedTime, groupByProject, keyedPanelWidth, kindLabel, PANEL_MIN_WIDTH, panelMaxWidth, parsePanelWidth, splitFeed, stateLabel, summaryLine, taskCount, TONE_LABELS, toneCounts, toneOf, TONES, type Tone } from "../lib/firstmateProgress.ts";
 import "./FirstmatePanel.css";
+import "./SidebarResizer.css";
 
 const POLL_MS = 30_000;
 const COLLAPSED_KEY = "herdr-web-ui:firstmate-panel-collapsed";
+const WIDTH_KEY = "herdr-web-ui:firstmate-panel-width";
 
 type Shown = Extract<FirstmateProgress, { configured: true }>;
 
@@ -23,6 +25,18 @@ function readCollapsed(): boolean {
   let stored: string | null = null;
   try { stored = localStorage.getItem(COLLAPSED_KEY); } catch { /* blocked storage */ }
   return stored === null ? window.matchMedia?.("(max-width: 560px)").matches === true : stored === "1";
+}
+
+function readWidth(): number | null {
+  try { return parsePanelWidth(localStorage.getItem(WIDTH_KEY)); } catch { return null; }
+}
+
+/** null forgets the choice: the column goes back to its default width */
+function storeWidth(width: number | null): void {
+  try {
+    if (width === null) localStorage.removeItem(WIDTH_KEY);
+    else localStorage.setItem(WIDTH_KEY, String(width));
+  } catch { /* blocked storage: the width is not remembered */ }
 }
 
 const TASK_ICONS: Record<Tone, ReactNode> = {
@@ -50,6 +64,8 @@ export function FirstmatePanel() {
   const [projectKey, setProjectKey] = useState<string | null>(null);
   const [feed, setFeed] = useState<"now" | "past">("now");
   const [still, setStill] = useState(false);
+  const [width, setWidth] = useState(readWidth);
+  const panel = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let live = true;
@@ -97,8 +113,13 @@ export function FirstmatePanel() {
   const shown = group ? splitFeed(group.tasks)[feed] : [];
   const lavish = group?.tasks.filter((task) => task.lavish_url !== null) ?? [];
 
+  // the window caps a chosen width too: it never takes more than 60% of it
+  const sized = width === null ? undefined : { "--fm-chosen": `min(${width}px, 60vw)` } as CSSProperties;
+
   return (
-    <aside className={`fm-panel${still ? " is-still" : ""}`} aria-label="Progresso do Firstmate">
+    <>
+    <PanelResizer panel={panel} width={width} onResize={setWidth} />
+    <aside ref={panel} className={`fm-panel${still ? " is-still" : ""}`} style={sized} aria-label="Progresso do Firstmate">
       <div className="fm-top">
         <div className="fm-top-row">
           <div className="fm-top-copy">
@@ -182,6 +203,74 @@ export function FirstmatePanel() {
         )}
       </div>
     </aside>
+    </>
+  );
+}
+
+/**
+ * The seam between the panes and the column, as the sidebar's edge (SidebarResizer): drag it,
+ * use the arrow keys, double-click to go back to the default width. Only where the column sits
+ * beside the panes (from 769px, the grip's own CSS); a folded column has none.
+ */
+function PanelResizer({ panel, width, onResize }: { panel: RefObject<HTMLElement | null>; width: number | null; onResize: (width: number | null) => void }) {
+  const drag = useRef<{ right: number; grip: number; width: number; moved: boolean } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const measured = (): number => Math.round(panel.current?.getBoundingClientRect().width ?? width ?? PANEL_MIN_WIDTH);
+
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
+    const box = panel.current?.getBoundingClientRect();
+    if (event.button !== 0 || !box) return;
+    // no text selection in the pane while the seam moves
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { right: box.right, grip: event.clientX - box.left, width: Math.round(box.width), moved: false };
+    setDragging(true);
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
+    const state = drag.current;
+    if (!state) return;
+    const next = clampPanelWidth(state.right - (event.clientX - state.grip), window.innerWidth);
+    if (next === state.width) return;
+    state.width = next;
+    state.moved = true;
+    onResize(next);
+  };
+  const endDrag = (event: PointerEvent<HTMLDivElement>): void => {
+    const state = drag.current;
+    if (!state) return;
+    drag.current = null;
+    setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (state.moved) storeWidth(state.width);
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const next = keyedPanelWidth(measured(), event.key, window.innerWidth);
+    if (next === null) return;
+    event.preventDefault();
+    storeWidth(next);
+    onResize(next);
+  };
+
+  return (
+    <div className="fm-resizer-slot">
+      <div
+        className={`sidebar-resizer${dragging ? " is-dragging" : ""}`}
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-label="Redimensionar painel"
+        aria-valuemin={PANEL_MIN_WIDTH}
+        aria-valuemax={panelMaxWidth(window.innerWidth)}
+        aria-valuenow={width ?? measured()}
+        title="Arraste para redimensionar · clique duplo para voltar ao padrão"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onDoubleClick={() => { storeWidth(null); onResize(null); }}
+        onKeyDown={onKeyDown}
+      />
+    </div>
   );
 }
 

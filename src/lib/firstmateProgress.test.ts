@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { FirstmateTask } from "../../shared/protocol.ts";
-import { badgeOf, collectedAt, groupByProject, splitFeed, stateLabel, summaryLine, toneCounts, toneOf } from "./firstmateProgress.ts";
+import { badgeOf, clampPanelWidth, collectedAt, groupByProject, keyedPanelWidth, parsePanelWidth, splitFeed, stateLabel, summaryLine, toneCounts, toneOf } from "./firstmateProgress.ts";
 
 const task = (id: string, state: string, repo: string | null = "firstmate", decision = false): FirstmateTask =>
   ({ id, kind: "ship", state, repo, name: id, doing: "", decision, lavish_url: null });
@@ -23,6 +23,27 @@ describe("firstmate progress", () => {
     expect(summaryLine(toneCounts([task("a", "working"), task("b", "unknown")]))).toBe("Nenhuma tarefa precisa de atenção agora.");
     expect(badgeOf(tasks[1]!)).toBe("Decisão pendente");
     expect(splitFeed(tasks)).toEqual({ now: tasks.slice(0, 3), past: [tasks[3]!] });
+  });
+
+  it("names what a task last logged", () => {
+    expect([stateLabel("paused"), stateLabel("needs-decision"), stateLabel("blocked"), stateLabel("done")])
+      .toEqual(["Aguardando", "Aguardando decisão", "Bloqueado", "Concluído"]);
+    expect(toneOf("needs-decision")).toBe("waiting");
+    expect(badgeOf(task("a", "needs-decision"))).toBe("Decisão pendente");
+    expect(badgeOf(task("a", "paused"))).toBeNull();
+  });
+
+  it("keeps a dragged width between its bounds", () => {
+    expect(clampPanelWidth(100, 1600)).toBe(300);
+    expect(clampPanelWidth(2000, 1600)).toBe(960);
+    expect(clampPanelWidth(900, 1000)).toBe(600);
+    expect(parsePanelWidth("520")).toBe(520);
+    expect(parsePanelWidth("wide")).toBeNull();
+    expect(parsePanelWidth(null)).toBeNull();
+    expect(keyedPanelWidth(400, "ArrowLeft", 1600)).toBe(416);
+    expect(keyedPanelWidth(400, "ArrowRight", 1600)).toBe(384);
+    expect(keyedPanelWidth(400, "End", 1000)).toBe(600);
+    expect(keyedPanelWidth(400, "Enter", 1600)).toBeNull();
   });
 
   it("groups by repository in snapshot order", () => {

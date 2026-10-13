@@ -179,6 +179,19 @@ export function plainActivity(doing: string): string {
   return cleaned.replace(/\s+([:;,.…])/g, "$1").replace(/\s{2,}/g, " ").replace(/^[\s:;,]+|[\s:;,]+$/g, "").trim();
 }
 
+// the status log's own word that opens an activity line: `paused [at=…]: why`
+const LOGGED_STATE = /^(working|paused|needs-decision|blocked|done|failed)\b(?:\s*\[[^\]]*\])*\s*:?\s*/;
+
+/**
+ * The state the panel shows: the snapshot's when it reconciled one, otherwise the word the task
+ * last logged (the snapshot reads `unknown` for every worker it does not see busy, a paused or
+ * blocked one included), with that word dropped from the activity line its label now repeats.
+ */
+export function loggedState(state: string, doing: string): { state: string; doing: string } {
+  const logged = state === "unknown" ? LOGGED_STATE.exec(doing) : null;
+  return logged ? { state: logged[1]!, doing: doing.slice(logged[0].length) } : { state, doing };
+}
+
 /** fm-bearings.v1 down to the panel's fields; anything else in the snapshot stays on the server */
 export function project(snapshot: unknown, lavish: Map<string, string> = new Map()): Collected {
   if (!isJsonObject(snapshot) || snapshot["schema"] !== "fm-bearings.v1" || !Array.isArray(snapshot["in_flight"])) throw new SyntaxError("not an fm-bearings.v1 snapshot");
@@ -186,13 +199,14 @@ export function project(snapshot: unknown, lavish: Map<string, string> = new Map
     .filter(isJsonObject).flatMap((decision) => [text(decision["id"]), text(decision["key"])]).filter(Boolean));
   const tasks = snapshot["in_flight"].filter(isJsonObject).map((row): FirstmateTask => {
     const id = text(row["id"]);
+    const { state, doing } = loggedState(text(row["state"]) || "unknown", text(row["doing"]));
     return {
       id,
       kind: text(row["kind"]) || "task",
-      state: text(row["state"]) || "unknown",
+      state,
       repo: text(row["repo"]) || null,
       name: text(row["name"]) || id,
-      doing: plainActivity(text(row["doing"])),
+      doing: plainActivity(doing),
       decision: decisions.has(id),
       lavish_url: lavish.get(id) ?? null,
     };

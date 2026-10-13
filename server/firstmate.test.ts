@@ -33,6 +33,30 @@ describe("project", () => {
     expect(JSON.stringify(collected)).not.toContain("secret landed title");
   });
 
+  it("reads an unknown state from the word the task last logged", () => {
+    const logged = (state: string, doing: string) => ({ id: "t", kind: "ship", state, repo: "fm", name: "T", doing });
+    const states = project(JSON.parse(snapshot([
+      logged("unknown", "paused [at=1791925745]: CI blocked by account billing"),
+      logged("unknown", "needs-decision [at=1] [key=nm-x-ci]: ask-user findings"),
+      logged("unknown", "blocked [at=1]: daemon socket refused"),
+      logged("unknown", "done [at=1]: PR checks green"),
+      logged("unknown", "working [at=1]: relaunched"),
+      logged("unknown", "resolved [at=1]: answered"),
+      logged("unknown", ""),
+      logged("parked", "working [at=1]: still logged as working"),
+    ]))).tasks.map((task) => [task.state, task.doing]);
+    expect(states).toEqual([
+      ["paused", "CI blocked by account billing"],
+      ["needs-decision", "ask-user findings"],
+      ["blocked", "daemon socket refused"],
+      ["done", "PR checks green"],
+      ["working", "relaunched"],
+      ["unknown", "resolved: answered"],
+      ["unknown", ""],
+      ["parked", "working: still logged as working"],
+    ]);
+  });
+
   it("drops internal identifiers and paths from the activity line", () => {
     expect(plainActivity("backend target gone: default:wX:p3")).toBe("backend target gone");
     expect(plainActivity("paused [at=1791898902]: no-mistakes run 01M4TNE92405XQH5A50KA7VQW7 is in its CI step on ht…")).toBe("paused: no-mistakes run is in its CI step on ht…");

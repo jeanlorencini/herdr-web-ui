@@ -2,7 +2,7 @@
    a right-hand column of the app body, 380 px, or a 52 px rail when collapsed. */
 
 .fm-panel {
-  --fm-w: 380px;
+  --fm-w: var(--fm-chosen, 380px);
   --fm-tone: var(--status-idle);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
@@ -27,8 +27,16 @@
    and the pane comes back when it folds to its rail */
 @media (max-width: 1100px) {
   .fm-panel {
-    --fm-w: 350px;
+    --fm-w: var(--fm-chosen, 350px);
   }
+}
+
+/* the seam's grip (SidebarResizer.css) sits on the column's left edge: this slot has no width
+   and the grip straddles it; below 769px the grip hides and a dragged width no longer applies */
+.fm-resizer-slot {
+  position: relative;
+  flex: none;
+  width: 0;
 }
 
 @media (max-width: 768px) {
