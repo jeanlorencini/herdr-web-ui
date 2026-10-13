@@ -1795,7 +1795,7 @@ export function createServer(
       if (pathname === "/api/preferences") return handlePreferencesRequest(request, preferences);
 
       if (pathname === "/api/usage") return handleUsageRequest(request, url, usage);
-      if (pathname === "/api/firstmate/progress") return handleFirstmateRequest(request, firstmate);
+      if (pathname === "/api/firstmate/progress") { bunServer.timeout(request, 130); return handleFirstmateRequest(request, firstmate); }
       // a long clip can keep the provider silent past Bun's 10 s idle limit before the first line
       if (pathname === "/api/voice" || pathname.startsWith("/api/voice/")) { bunServer.timeout(request, 120); return handleVoiceRequest(request, pathname, voice); }
 

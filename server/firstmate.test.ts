@@ -1,4 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { FirstmateProgressService, handleFirstmateRequest, lavishByTask, plainActivity, project } from "./firstmate.ts";
 
@@ -36,6 +39,8 @@ describe("project", () => {
     expect(plainActivity("wrote C:\\Users\\me\\firstmate\\data\\x\\report.md and /home/me/fm/data/y.md")).toBe("wrote and");
     expect(plainActivity("PR https://github.com/o/r/pull/9 opened")).toBe("PR opened");
     expect(plainActivity("harness busy (claude-hook)")).toBe("harness busy (claude-hook)");
+    expect(plainActivity("aguardando desde 14:14:55")).toBe("aguardando desde 14:14:55");
+    expect(plainActivity("since 2026-10-13T14:14:55Z")).toBe("since 2026-10-13T14:14:55Z");
   });
 
   it("refuses output that is not a bearings snapshot", () => {
@@ -93,6 +98,14 @@ describe("FirstmateProgressService", () => {
     const report = await service.report();
     expect(report).toMatchObject({ status: "ok", error: null });
     expect(report.tasks.map((task) => task.lavish_url)).toEqual([null]);
+  });
+
+  it("settles a timed-out run although a child it spawned still holds stdout", async () => {
+    const home = mkdtempSync(join(tmpdir(), "fm-home-"));
+    mkdirSync(join(home, "bin"));
+    writeFileSync(join(home, "bin", "fm-bearings-snapshot.sh"), "sleep 10\necho '{}'\n");
+    const service = new FirstmateProgressService({ home, timeoutMs: 300, readLavish: () => "{}" });
+    expect(await service.report()).toMatchObject({ status: "unavailable", error: "timeout" });
   });
 
   it("answers configured: false without a service and refuses other methods", async () => {

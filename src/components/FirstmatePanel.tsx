@@ -20,7 +20,9 @@ const COLLAPSED_KEY = "herdr-web-ui:firstmate-panel-collapsed";
 type Shown = Extract<FirstmateProgress, { configured: true }>;
 
 function readCollapsed(): boolean {
-  try { return localStorage.getItem(COLLAPSED_KEY) === "1"; } catch { return false; }
+  let stored: string | null = null;
+  try { stored = localStorage.getItem(COLLAPSED_KEY); } catch { /* blocked storage */ }
+  return stored === null ? window.matchMedia?.("(max-width: 560px)").matches === true : stored === "1";
 }
 
 const TASK_ICONS: Record<Tone, ReactNode> = {

@@ -107,11 +107,12 @@ export class FirstmateProgressService {
       throw new SnapshotError("spawn_failed", error instanceof Error ? error.message : String(error));
     }
     this.child = child;
-    let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; child.kill(); }, this.options.timeoutMs ?? FIRSTMATE_TIMEOUT_MS);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => { child.kill(); reject(new SnapshotError("timeout", "snapshot timed out")); }, this.options.timeoutMs ?? FIRSTMATE_TIMEOUT_MS);
+    });
     try {
-      const [output, code] = await Promise.all([new Response(child.stdout as ReadableStream).text(), child.exited]);
-      if (timedOut) throw new SnapshotError("timeout", "snapshot timed out");
+      const [output, code] = await Promise.race([Promise.all([new Response(child.stdout as ReadableStream).text(), child.exited]), timeout]);
       if (code !== 0) throw new SnapshotError("exit_failed", `snapshot exited ${code}`);
       return output;
     } finally {
@@ -168,7 +169,7 @@ const INTERNAL = [
   /\bhttps?:\/\/\S+/g, // a raw address (before the paths: its `//` reads as one)
   /\b[A-Za-z]:[\\/][^\s,;)]*/g, // a Windows path
   /(?:~|\B\/)[\w.-]*\/[^\s,;)]*/g, // a Unix path
-  /\b[\w.-]+(?::[\w.-]+){2,}/g, // a backend target such as default:wX:p3
+  /\b[A-Za-z][\w.-]*(?::[\w.-]+){2,}/g, // a backend target such as default:wX:p3
   /\b[0-9A-HJKMNP-TV-Z]{26}\b/g, // a no-mistakes run id (a ULID)
 ];
 
