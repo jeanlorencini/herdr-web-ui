@@ -3,3 +3,8 @@
 # Fail lint when gitleaks finds a secret in the branch's commits, or when gitleaks is missing.
 commands:
   lint: 'sh scripts/gitleaks-gate.sh'
+
+lint:
+  instructions: |
+    Never edit .gitleaksignore or any gitleaks config (.gitleaks.toml, gitleaks.toml, .gitleaks/).
+    Never rewrite, amend or drop commits to silence gitleaks. A gitleaks finding is escalated to the captain, never fixed by you.

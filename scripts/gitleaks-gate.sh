@@ -7,6 +7,10 @@ base=
 for ref in origin/main main; do
   base=$(git merge-base "$ref" HEAD 2>/dev/null) && break || base=
 done
+if [ -n "$base" ] && ! git diff --quiet "$base" HEAD -- .gitleaksignore .gitleaks.toml gitleaks.toml .gitleaks; then
+  echo "gitleaks allowlist or config changed since $base; the captain must approve this lint finding" >&2
+  exit 1
+fi
 # ponytail: no default-branch ref in this checkout -> scan all reachable history (slower, never weaker)
 range=${base:+$base..}HEAD
 exec gitleaks git --no-banner --redact --exit-code 1 --log-opts="$range" .
