@@ -57,6 +57,16 @@ describe("project", () => {
     ]);
   });
 
+  it("takes the whole name and activity when the snapshot sends them", () => {
+    const [whole, cut] = project(JSON.parse(snapshot([
+      { id: "w", kind: "ship", state: "unknown", repo: "fm", name: "Investigar o PermissionError que…", name_full: "Investigar o PermissionError que deixa a fonte de dados do cockpit sem acesso",
+        doing: "paused [at=1]: pausado por…", doing_full: "paused [at=1]: pausado por decisão do capitão" },
+      { id: "c", kind: "ship", state: "unknown", repo: "fm", name: "Short", doing: "blocked [at=1]: why" },
+    ]))).tasks;
+    expect([whole!.name, whole!.state, whole!.doing]).toEqual(["Investigar o PermissionError que deixa a fonte de dados do cockpit sem acesso", "paused", "pausado por decisão do capitão"]);
+    expect([cut!.name, cut!.state, cut!.doing]).toEqual(["Short", "blocked", "why"]);
+  });
+
   it("drops internal identifiers and paths from the activity line", () => {
     expect(plainActivity("backend target gone: default:wX:p3")).toBe("backend target gone");
     expect(plainActivity("paused [at=1791898902]: no-mistakes run 01M4TNE92405XQH5A50KA7VQW7 is in its CI step on ht…")).toBe("paused: no-mistakes run is in its CI step on ht…");

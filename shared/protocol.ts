@@ -336,8 +336,9 @@ export interface FirstmateTask {
    *  the task last logged it when the home could not (the logged word is then dropped from `doing`) */
   readonly state: string;
   readonly repo: string | null;
+  /** `name_full` when the snapshot sends it, else its shortened `name` */
   readonly name: string;
-  /** the last recorded activity, event markers removed */
+  /** the last recorded activity (`doing_full`, else `doing`), event markers removed */
   readonly doing: string;
   /** an open decision carries this task's id */
   readonly decision: boolean;

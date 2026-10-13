@@ -199,13 +199,14 @@ export function project(snapshot: unknown, lavish: Map<string, string> = new Map
     .filter(isJsonObject).flatMap((decision) => [text(decision["id"]), text(decision["key"])]).filter(Boolean));
   const tasks = snapshot["in_flight"].filter(isJsonObject).map((row): FirstmateTask => {
     const id = text(row["id"]);
-    const { state, doing } = loggedState(text(row["state"]) || "unknown", text(row["doing"]));
+    // the snapshot cuts `name` and `doing` short for its own table; `*_full`, when it sends them, are whole
+    const { state, doing } = loggedState(text(row["state"]) || "unknown", text(row["doing_full"]) || text(row["doing"]));
     return {
       id,
       kind: text(row["kind"]) || "task",
       state,
       repo: text(row["repo"]) || null,
-      name: text(row["name"]) || id,
+      name: text(row["name_full"]) || text(row["name"]) || id,
       doing: plainActivity(doing),
       decision: decisions.has(id),
       lavish_url: lavish.get(id) ?? null,
