@@ -6,5 +6,5 @@ commands:
 
 lint:
   instructions: |
-    Never edit .gitleaksignore or any gitleaks config (.gitleaks.toml, gitleaks.toml, .gitleaks/).
+    Never edit .gitleaksignore, any gitleaks config (.gitleaks.toml, gitleaks.toml, .gitleaks/) or scripts/gitleaks-gate.sh.
     Never rewrite, amend or drop commits to silence gitleaks. A gitleaks finding is escalated to the captain, never fixed by you.

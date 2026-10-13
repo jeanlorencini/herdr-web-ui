@@ -7,9 +7,9 @@ base=
 for ref in origin/main main; do
   base=$(git merge-base "$ref" HEAD 2>/dev/null) && break || base=
 done
-set -- .gitleaksignore .gitleaks.toml gitleaks.toml .gitleaks
+set -- .gitleaksignore .gitleaks.toml gitleaks.toml .gitleaks scripts/gitleaks-gate.sh
 if [ -n "$base" ] && { ! git diff --quiet "$base" -- "$@" || [ -n "$(git ls-files --others -- "$@")" ]; }; then
-  echo "gitleaks allowlist or config changed since $base; the captain must approve this lint finding" >&2
+  echo "gitleaks allowlist, config or gate script changed since $base; the captain must approve this lint finding" >&2
   exit 1
 fi
 # ponytail: no default-branch ref in this checkout -> scan all reachable history (slower, never weaker)
