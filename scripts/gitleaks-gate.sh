@@ -7,7 +7,8 @@ base=
 for ref in origin/main main; do
   base=$(git merge-base "$ref" HEAD 2>/dev/null) && break || base=
 done
-if [ -n "$base" ] && ! git diff --quiet "$base" HEAD -- .gitleaksignore .gitleaks.toml gitleaks.toml .gitleaks; then
+set -- .gitleaksignore .gitleaks.toml gitleaks.toml .gitleaks
+if [ -n "$base" ] && { ! git diff --quiet "$base" -- "$@" || [ -n "$(git ls-files --others -- "$@")" ]; }; then
   echo "gitleaks allowlist or config changed since $base; the captain must approve this lint finding" >&2
   exit 1
 fi
