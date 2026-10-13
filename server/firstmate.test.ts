@@ -50,7 +50,7 @@ describe("project", () => {
       ["needs-decision", "ask-user findings"],
       ["blocked", "daemon socket refused"],
       ["done", "PR checks green"],
-      ["working", "relaunched"],
+      ["unknown", "working: relaunched"],
       ["unknown", "resolved: answered"],
       ["unknown", ""],
       ["parked", "working: still logged as working"],

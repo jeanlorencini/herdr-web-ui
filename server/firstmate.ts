@@ -180,12 +180,13 @@ export function plainActivity(doing: string): string {
 }
 
 // the status log's own word that opens an activity line: `paused [at=…]: why`
-const LOGGED_STATE = /^(working|paused|needs-decision|blocked|done|failed)\b(?:\s*\[[^\]]*\])*\s*:?\s*/;
+const LOGGED_STATE = /^(paused|needs-decision|blocked|done|failed)\b(?:\s*\[[^\]]*\])*\s*:?\s*/;
 
 /**
  * The state the panel shows: the snapshot's when it reconciled one, otherwise the word the task
  * last logged (the snapshot reads `unknown` for every worker it does not see busy, a paused or
  * blocked one included), with that word dropped from the activity line its label now repeats.
+ * A logged `working` stays `unknown`: the snapshot did not see that worker busy.
  */
 export function loggedState(state: string, doing: string): { state: string; doing: string } {
   const logged = state === "unknown" ? LOGGED_STATE.exec(doing) : null;
