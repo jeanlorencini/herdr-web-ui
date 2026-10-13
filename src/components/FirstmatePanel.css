@@ -383,11 +383,18 @@
   inset: -3px;
   border: var(--hairline) solid color-mix(in srgb, var(--status-working) 30%, transparent);
   border-radius: 50%;
-  animation: fm-breathe var(--dur-breathe) var(--ease-pulse) infinite;
 }
 
-.fm-task[data-tone="working"] .fm-pip {
-  animation: fm-signal var(--dur-breathe) var(--ease-pulse) infinite;
+/* motion starts only when nothing asks it to stay still */
+@media (prefers-reduced-motion: no-preference) {
+  .fm-panel:not(.is-still) .fm-task[data-tone="working"] .fm-event-icon::after,
+  .fm-panel:not(.is-still) .fm-summary[data-tone="working"] .fm-summary-icon::after {
+    animation: fm-breathe var(--dur-breathe) var(--ease-pulse) infinite;
+  }
+
+  .fm-panel:not(.is-still) .fm-task[data-tone="working"] .fm-pip {
+    animation: fm-signal var(--dur-breathe) var(--ease-pulse) infinite;
+  }
 }
 
 .fm-panel.is-still *,
