@@ -5,12 +5,13 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { ConversationMonitor } from "./conversation-monitor.ts";
 import { createServer } from "./index.ts";
-import type { AgentKind, AgentStatus, ApiError, HealthAuth, IntegrationsResponse, LanExposure, PortalStatus, PushKey, RemoteAccess, SessionSnapshot, TabMoved, PaneFindResponse, PaneReadResult, UsageReport, WorkspaceCreated, WorktreeListing, WorktreeOpened, WorktreeRemoved } from "../shared/protocol.ts";
+import type { AgentKind, AgentStatus, ApiError, FirstmateProgress, HealthAuth, IntegrationsResponse, LanExposure, PortalStatus, PushKey, RemoteAccess, SessionSnapshot, TabMoved, PaneFindResponse, PaneReadResult, UsageReport, WorkspaceCreated, WorktreeListing, WorktreeOpened, WorktreeRemoved } from "../shared/protocol.ts";
 import { HerdrUpdater } from "./herdr-update.ts";
 import { PortalService } from "./portal.ts";
 import { noInstalledNotes, unmanagedUpdateStatus, type HerdrUpdateStatus, type InstalledNotes, type UpdateNotes } from "../shared/update.ts";
 import { USAGE_PROVIDERS, UsageService } from "./usage.ts";
 import { VoiceService } from "./voice.ts";
+import { FirstmateProgressService } from "./firstmate.ts";
 import { Telemetry } from "./telemetry.ts";
 import { NOTICE_VERSION, type TelemetryEvent, type TelemetryStatus } from "../shared/telemetry.ts";
 import { DEFAULT_SETTINGS, telemetrySettingsSnapshot } from "../src/lib/settings.ts";
@@ -306,6 +307,32 @@ describe("usage API", () => {
       const withToken = await fetch(`http://localhost:${gated.port}/api/usage`, { headers: { authorization: "Bearer test-usage-token" } });
       expect(withToken.status).toBe(200);
     } finally { open.stop(); gated.stop(); rmSync(usageState, { recursive: true, force: true }); }
+  });
+});
+
+describe("firstmate progress API", () => {
+  it("answers the panel's fields behind the token gate, and configured: false without a home", async () => {
+    const state = mkdtempSync(join(tmpdir(), "herdr-firstmate-contract-"));
+    const firstmate = new FirstmateProgressService({
+      home: state, readLavish: () => "{\"sessions\":[]}",
+      run: async () => JSON.stringify({ schema: "fm-bearings.v1", generated: "2026-10-13T14:14:55Z",
+        in_flight: [{ id: "a-01", kind: "scout", state: "working", repo: "firstmate", name: "A", doing: "reading" }],
+        landed: [{ id: "old", what: "kept on the server", artifact: "-", owner: "(main)" }], omitted: [] }),
+    });
+    const gated = createServer({ port: 0, stateDir: state, firstmate, token: "firstmate-token" });
+    const off = createServer({ port: 0, stateDir: state, firstmate: null });
+    try {
+      const url = `http://localhost:${gated.port}/api/firstmate/progress`;
+      expect((await fetch(url)).status).toBe(401);
+      const response = await fetch(url, { headers: { authorization: "Bearer firstmate-token" } });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      const body = await response.text();
+      expect(body).not.toContain("kept on the server");
+      expect(JSON.parse(body) as FirstmateProgress).toEqual({ configured: true, status: "ok", generated_at: "2026-10-13T14:14:55Z", omitted: [], error: null,
+        tasks: [{ id: "a-01", kind: "scout", state: "working", repo: "firstmate", name: "A", doing: "reading", decision: false, lavish_url: null }] });
+      expect(await (await fetch(`http://localhost:${off.port}/api/firstmate/progress`)).json()).toEqual({ configured: false });
+    } finally { gated.stop(); off.stop(); rmSync(state, { recursive: true, force: true }); }
   });
 });
 

@@ -452,6 +452,9 @@ Observe connections cannot take a pane, and a displaced bridge never takes it ba
 | `HERDR_WEB_HERDR_BIN` | `herdr` | herdr executable used for terminal attach |
 | `HERDR_WEB_APP_NAME` | unset (`herdr`) | The name the installed app has on a phone or computer, for example the PC's name. Each PC installs as an app of its own, and without it they are all called `herdr`. An app already installed takes the new name when the browser next updates it, usually within a day or two, without a reinstall. Keep it short: a home screen cuts a long label |
 | `HERDR_WEB_PASTE_DIR` | `<pane cwd>/.herdr-web-ui` | Where pasted and attached files are saved: an absolute path or `~/…`. Set it to keep them out of your projects; an agent may then ask before reading one. It covers the panes of this server's PC; a remote PC keeps the default |
+| `HERDR_WEB_FIRSTMATE_HOME` | unset | A Firstmate home (its `FM_HOME`). Set, the app shows a progress column on the right, from the home's `bin/fm-bearings-snapshot.sh --json --all-in-flight`, run by the server at most once every three minutes while a page shows it, and shown as old after ten minutes without a new one. Unset, there is no column |
+| `HERDR_WEB_FIRSTMATE_BASH` | `bash` on the server's PATH | The bash that runs that snapshot. On Windows name Git Bash's `bash.exe` when WSL's `bash` comes first on PATH |
+| `HERDR_WEB_LAVISH_STATE` | `~/.lavish-axi/state.json` | Lavish's session list: an open session whose page lives in `<Firstmate home>/data/<task>/` gets a **Revisar no Lavish** link in that column |
 | `CODEX_HOME` | `~/.codex` | Where Codex sessions are read |
 
 ## Updates

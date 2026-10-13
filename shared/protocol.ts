@@ -233,6 +233,8 @@ export type { Machine, MachineEvent, PaneTarget, SetupJob, SetupRequest, SetupAc
  *  DELETE /api/push/subscribe { endpoint }      -> 204
  *  POST   /api/push/test      { endpoint }      -> 204 | 404 subscription_not_found | 502 push_failed
  *  GET    /api/usage[?refresh=1]         -> UsageReport (plan limits of the AI subscriptions signed in on this PC)
+ *  GET    /api/firstmate/progress        -> FirstmateProgress (the Firstmate home's in-flight work, from a cached
+ *         `fm-bearings-snapshot.sh --json --all-in-flight` run; `configured: false` without HERDR_WEB_FIRSTMATE_HOME)
  *  Errors: non-2xx with { error: { code, message } }
  *
  *  Access: every route above except /api/health, /api/auth and /api/devices/pair, plus the
@@ -324,6 +326,40 @@ export interface ProviderUsage {
 export interface UsageReport {
   readonly providers: readonly ProviderUsage[];
 }
+
+/** One in-flight Firstmate task, projected from fm-bearings.v1 `in_flight`. */
+export interface FirstmateTask {
+  readonly id: string;
+  /** ship, scout, or what the home recorded */
+  readonly kind: string;
+  /** working, parked, paused, blocked, done, failed or unknown, as the home reconciled it */
+  readonly state: string;
+  readonly repo: string | null;
+  readonly name: string;
+  /** the last recorded activity, event markers removed */
+  readonly doing: string;
+  /** an open decision carries this task's id */
+  readonly decision: boolean;
+  /** an open Lavish session whose artifact lives under this task's data folder */
+  readonly lavish_url: string | null;
+}
+
+/**
+ * GET /api/firstmate/progress. `ok` is a collection newer than the stale limit, `stale` an older
+ * one kept because later runs failed, `unavailable` no collection yet. `omitted` lists the
+ * in_flight surfaces the snapshot itself said it left out.
+ */
+export type FirstmateProgress =
+  | { readonly configured: false }
+  | {
+    readonly configured: true;
+    readonly status: "ok" | "stale" | "unavailable";
+    /** the snapshot's own `generated` stamp */
+    readonly generated_at: string | null;
+    readonly tasks: readonly FirstmateTask[];
+    readonly omitted: readonly string[];
+    readonly error: string | null;
+  };
 
 /** How a request got in, when it did. */
 export type AccessVia = "local" | "tailscale" | "device" | "token" | "open";
