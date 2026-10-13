@@ -1,0 +1,5 @@
+# Per-repo no-mistakes overrides.
+
+# Fail lint when gitleaks finds a secret in the branch's commits, or when gitleaks is missing.
+commands:
+  lint: 'sh scripts/gitleaks-gate.sh'
