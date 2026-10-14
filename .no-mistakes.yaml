@@ -3,7 +3,7 @@
 # Fail lint when gitleaks finds a secret in the branch's commits, or when gitleaks is missing.
 # no-mistakes runs commands through cmd.exe on Windows, whose PATH has no `sh`; a git alias runs the script with git's own shell from the repo root.
 commands:
-  lint: 'git -c alias.gitleaks-gate=!scripts/gitleaks-gate.sh gitleaks-gate'
+  lint: 'git -c "alias.gitleaks-gate=!sh scripts/gitleaks-gate.sh" gitleaks-gate'
 
 lint:
   instructions: |
