@@ -61,6 +61,7 @@ import { TelemetryNotice } from "./components/TelemetryControls.tsx";
 import { FilesDialog } from "./components/FilesDialog.tsx";
 import { folderQueryFor } from "./lib/paletteFolders.ts";
 import { FileViewer } from "./components/FileViewer.tsx";
+import { FirstmatePanel } from "./components/FirstmatePanel.tsx";
 import { RepoDiffViewer } from "./components/RepoDiffViewer.tsx";
 import { OpenFileContext } from "./lib/filePaths.ts";
 import { useFileViewer } from "./lib/useFileViewer.ts";
@@ -1580,6 +1581,8 @@ export function App() {
         </div>
         </div>
         </OpenFileContext.Provider>
+        {/* the Firstmate progress column: drawn only when the server has a Firstmate home */}
+        <FirstmatePanel />
       </div>
 
       <MachineContext.Provider value={newSessionMachineId}><NewSessionDialog

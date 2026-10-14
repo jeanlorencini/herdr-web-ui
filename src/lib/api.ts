@@ -9,6 +9,7 @@ import type {
   CreateWorkspaceRequest,
   DirectoryListing,
   FileInfo,
+  FirstmateProgress,
   FocusPaneRequest,
   HealthAuth,
   IntegrationsResponse,
@@ -78,6 +79,11 @@ export function fetchRemoteAccess(): Promise<RemoteAccess> {
 /** The sidebar's plan meters; `refresh` asks the providers again instead of the server's recent answer. */
 export function fetchUsage(refresh = false): Promise<UsageReport> {
   return getJson<UsageReport>(refresh ? "/api/usage?refresh=1" : "/api/usage");
+}
+
+/** The Firstmate progress panel's collection; `configured: false` on a server without a Firstmate home. */
+export function fetchFirstmateProgress(): Promise<FirstmateProgress> {
+  return getJson<FirstmateProgress>("/api/firstmate/progress");
 }
 
 export function fetchUpdateStatus(): Promise<UpdateStatus> {
